@@ -1,0 +1,18 @@
+.firstblock {
+    background-color: #1F2937;
+    width: 100%;
+    height: 150px;
+
+}
+
+h3 {
+    color: #F9FAF8;
+    font-size: 24px;
+}
+
+* {
+    outline: 2px solid red;
+    margin: 0px;
+    border: 0px;
+
+}
