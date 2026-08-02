@@ -1,70 +1,90 @@
-.block1 {
+.nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.hero{
     background-color: #1F2937;
-    width: 100%;
-    height: 200px;
-    display: flex;
+}
+.container {
+  
 
+    padding-inline: 24px;
 }
 
-.block1 .innerbox1 {
-    /* color: #F9FAF8; */
+.logo {
+    display: flex;
+    width: 50%;
     font-size: 24px;
+    font-weight: bold;
+    color: white;
+    padding: 10px 0;
+   justify-content: center;
+}
+
+.nav_links {
+    font-size: 18px;
+    color: #E5E7EB;
     display: flex;
-    flex-direction: column;
-    flex: 1;
-    /* outline: 2px solid rgb(19, 1, 1); */
+    list-style: none;
+    padding: 10px 0;
+    gap: 30px;
 }
-
-.block1 .innerbox1 .logo {
-    font-size: 24px;
-    color: #F9FAF8;
-    flex: 1 1 auto;
-    padding-left: 60px;
-}
-
-.block1 .innerbox1 .slogan {
+.hero_body{
     display: flex;
-    flex-direction: column;
-    flex: 5 1 auto;
-    padding-left: 60px;
-}
+    justify-content: center;
 
-.block1 .innerbox1 .slogan .son1 {
+}
+.hero_text{
+    margin-bottom: 20px;
+    margin-right: 20px;
+}
+h1 {
     font-size: 48px;
-    color: white;
+    color: #f9faf8;
+    font-weight: 900;
 }
+p{
+    font-style: 18px;
+    color: #E5E7EB;
 
-.block1 .innerbox1 .slogan .son2 {
-    font-size: 12px;
-    color: white;
 }
-
-.block1 .innerbox2 {
-    /* color: #F9FAF8; */
-    font-size: 24px;
+.hero_image{
     display: flex;
-    flex-direction: column;
-    flex: 1;
-    /* outline: 2px solid rgb(19, 1, 1); */
+    justify-content: center;
+    align-items: center;
+    background-color: silver;
+    margin-bottom: 20px;
+    width: 35%;
 }
+button{
+    border-radius: 5px;
+    background-color: #0080ff;
+    color: white;
+    border: none;
 
-.block1 .innerbox2 .somelink {
+}
+.information{
+    font-size: 36px;
+    color: #1f2937;
+    font-weight: 900;
+    text-align: center;
+}
+.subtext{
     display: flex;
-    flex-direction: row;
-    flex: 1 1 auto;
+    gap: 40px;
+    justify-content: center;
+    align-items: center;
 }
-
-.block1 .innerbox2 .somelink .link {
-    font-size: 12px;
+.subtext_container{
+    width: 12.5%;
+    list-style: none;
 }
-
-.block1 .innerbox2 .aimage {
-    flex: 7 1 auto;
-}
-
-* {
-    /* outline: 2px solid red; */
-    margin: 0px;
-    border: 0px;
-
+.placeholder{
+    background-color: white;
+    
+    border: 2px solid skyblue;
+    border-radius: 10px;
+    width: 100%;
+    aspect-ratio: 1;
 }
