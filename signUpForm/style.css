@@ -1,0 +1,114 @@
+@font-face {
+    font-family: Norsebold;
+    src: url(./norse/Norsebold.otf);
+}
+body {
+    display: flex;
+    min-height: 100vh;
+    margin: 0;
+}
+.left {
+    position: relative;
+    display: flex;
+    flex: 4 1 0;
+    background-image: url("./febri-adiawarja-TSKYvXf1d4M-unsplash.jpg");
+    background-size: cover;
+    background-position: right 0 bottom 20%;
+}
+.right {
+    display: flex;
+
+    flex-direction: column;
+    flex: 6 1 0;
+}
+div#opbg {
+    display: flex;
+    width: 100%;
+    height: 15vh;
+    position: absolute;
+    top: 25vh;
+    background: rgb(166 166 166 / 30%);
+    align-items: center;
+    justify-content: center;
+}
+#slang {
+    font-family: Norsebold, sans-serif;
+    font-size: 15vh;
+}
+#logo {
+    height: 98%;
+}
+#comment {
+    width: 100%;
+    display: flex;
+    align-self: end;
+    justify-content: center;
+    font-size: 2vh;
+}
+.right #description {
+    position: absolute;
+    left: 6vw;
+    top: 6vh;
+    right: 20vw;
+    font-size: calc(1cqw + 1cqh);
+    font-weight: 500;
+}
+#part1 {
+    flex: 4;
+    position: relative;
+}
+#part2,
+#part3 {
+    flex: 3.5;
+}
+#part2 {
+    display: flex;
+    flex-direction: column;
+
+    padding: 20px;
+}
+#wrapit {
+    display: flex;
+    flex-wrap: wrap;
+}
+.shabi {
+    padding: 15px;
+    width: 35%;
+    display: flex;
+    flex-direction: column;
+}
+#form {
+    flex: 7;
+    display: flex;
+    flex-direction: column;
+}
+input {
+    border-color: rgb(166 166 166 / 30%);
+    border-style: solid;
+    border-width: 1px;
+}
+input:focus {
+    outline: 1px solid blue;
+    border: 0px;
+    box-shadow: 2px 2px rgb(166 166 166 / 30%);
+}
+#password,
+#repass {
+    outline: 1px solid darkorange;
+    border: 0px;
+}
+button {
+    background-color: rgb(89 109 72);
+    color: white;
+    padding: 3px 35px;
+    width: 58%;
+    border-radius: 5px;
+}
+#part3 {
+    display: flex;
+    flex-direction: column;
+    padding: 30px;
+}
+a {
+    color: rgb(89 109 72);
+}

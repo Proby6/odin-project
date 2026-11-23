@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Flex 对齐 · 看见空间怎么分配</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #24313d;
+        --muted: #65717b;
+        --paper: #f5f4ef;
+        --line: #dcded8;
+        --a: #257c74;
+        --b: #b76428;
+        --c: #7356a2;
+        --tile-size: 80px;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--paper);
+        color: var(--ink);
+        font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      button, select, input { font: inherit; }
+      button, select { cursor: pointer; }
+      button:focus-visible, select:focus-visible, input:focus-visible, a:focus-visible {
+        outline: 3px solid #287dbe;
+        outline-offset: 3px;
+      }
+      button { touch-action: manipulation; }
+      code, .number {
+        font-family: "SFMono-Regular", Consolas, monospace;
+        font-variant-numeric: tabular-nums;
+      }
+      code { font-size: .9em; }
+      h1, h2, h3, p { margin: 0; }
+      main { max-width: 1180px; margin: 0 auto; padding: 38px 28px 40px; }
+      .eyebrow { color: var(--muted); font-size: 12px; letter-spacing: .12em; margin-bottom: 8px; }
+      h1 { font-size: clamp(25px, 3.4vw, 37px); letter-spacing: -.04em; line-height: 1.3; }
+      .subtitle { color: var(--muted); margin-top: 10px; }
+      .tabs { display: flex; gap: 7px; margin: 28px 0 20px; flex-wrap: wrap; }
+      .tab {
+        padding: 11px 17px;
+        border: 1px solid transparent;
+        border-radius: 9px;
+        color: var(--muted);
+        background: transparent;
+      }
+      .tab[aria-selected="true"] { background: var(--ink); color: #fff; }
+      .tab:hover:not([aria-selected="true"]) { background: #e9e9e2; }
+      [hidden] { display: none !important; }
+      .panel { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 24px; }
+      .panel-heading { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 24px; }
+      h2 { font-size: 20px; line-height: 1.4; }
+      .secondary { color: var(--muted); font-size: 13px; margin-top: 5px; }
+      .tag { flex: 0 0 auto; padding: 4px 10px; border-radius: 6px; background: #f0f1ec; color: var(--muted); font-size: 12px; }
+      .axis-layout { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 30px; }
+      .controls { display: flex; flex-direction: column; gap: 22px; min-width: 0; }
+      .control-label { display: block; font-size: 13px; margin-bottom: 8px; }
+      .control-label code { display: block; color: var(--muted); margin-top: 2px; }
+      .segmented { display: flex; gap: 6px; flex-wrap: wrap; }
+      .segmented button, .action {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--ink);
+        border-radius: 7px;
+        padding: 8px 12px;
+      }
+      .segmented button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: #fff; }
+      .segmented button:hover:not([aria-pressed="true"]), .action:hover { background: #f3f4ef; }
+      select { width: 100%; padding: 9px 10px; border: 1px solid var(--line); border-radius: 7px; background: #fff; color: var(--ink); }
+      .self-controls { display: flex; flex-direction: column; gap: 7px; }
+      .self-row { display: flex; align-items: center; gap: 9px; }
+      .self-row label { width: 27px; flex: 0 0 auto; font-weight: 600; }
+      .self-row select { min-width: 0; font-size: 13px; }
+      .letter-a { color: var(--a); }
+      .letter-b { color: var(--b); }
+      .letter-c { color: var(--c); }
+      .checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+      .checkbox input { width: 17px; height: 17px; accent-color: var(--ink); }
+      .visual { min-width: 0; }
+      .canvas-wrap { position: relative; padding: 29px 0 0 29px; }
+      .axis-horizontal { position: absolute; left: 29px; right: 0; top: 0; height: 23px; }
+      .axis-horizontal::before { content: ""; position: absolute; left: 0; right: 2px; top: 15px; border-top: 1px solid currentColor; }
+      .axis-horizontal::after { content: ""; position: absolute; right: 0; top: 12px; width: 6px; height: 6px; border-top: 1px solid currentColor; border-right: 1px solid currentColor; transform: rotate(45deg); }
+      .axis-horizontal span { position: relative; top: -1px; background: #fff; padding: 0 7px 0 0; font-size: 12px; }
+      .axis-vertical { position: absolute; left: 0; top: 29px; bottom: 0; width: 23px; }
+      .axis-vertical::before { content: ""; position: absolute; left: 15px; top: 0; bottom: 2px; border-left: 1px solid currentColor; }
+      .axis-vertical::after { content: ""; position: absolute; left: 12px; bottom: 0; width: 6px; height: 6px; border-right: 1px solid currentColor; border-bottom: 1px solid currentColor; transform: rotate(45deg); }
+      .axis-vertical span { position: relative; left: -1px; writing-mode: vertical-rl; background: #fff; padding: 0 0 7px; font-size: 12px; }
+      .main-axis { color: #a86b0d; }
+      .cross-axis { color: #317d91; }
+      .stage {
+        position: relative;
+        display: flex;
+        width: 100%;
+        height: 346px;
+        padding: 0;
+        border: 2px solid #b9c1c0;
+        background: #fafbf8;
+        background-image: radial-gradient(#dce0d8 .8px, transparent .8px);
+        background-size: 16px 16px;
+        isolation: isolate;
+      }
+      .tile {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex: 0 0 auto;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        width: var(--tile-size);
+        height: var(--tile-size);
+        border: 2px solid currentColor;
+        border-radius: 8px;
+        font-weight: 600;
+        line-height: 1.4;
+      }
+      .tile-a { color: var(--a); background: #e1f1ec; }
+      .tile-b { color: var(--b); background: #ffead8; }
+      .tile-c { color: var(--c); background: #eee6f6; }
+      .tile-letter { font-size: 25px; }
+      .tile-position { font-size: 10px; font-weight: 400; color: #44515b; margin-top: 4px; white-space: nowrap; }
+      .range-layer { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+      .range-band { position: absolute; border: 1px dashed currentColor; }
+      .range-a { color: #58968c; background: #257c7410; }
+      .range-b { color: #bc824e; background: #b7642810; }
+      .range-c { color: #967daf; background: #7356a210; }
+      .free-gap {
+        position: absolute;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #866518;
+        font-size: 11px;
+        background: repeating-linear-gradient(135deg, #e5be5a18, #e5be5a18 6px, #e5be5a32 6px, #e5be5a32 7px);
+        overflow: hidden;
+      }
+      .free-gap span { padding: 2px 5px; background: #fff8e8e8; border-radius: 3px; white-space: nowrap; }
+      .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 12px; color: var(--muted); margin: 14px 0 0 29px; }
+      .legend span { display: inline-flex; align-items: center; gap: 7px; }
+      .swatch { width: 17px; height: 13px; display: inline-block; }
+      .swatch-free { background: repeating-linear-gradient(135deg, #ead594, #ead594 3px, #fff8e8 3px, #fff8e8 6px); }
+      .swatch-range { border: 1px dashed #648f93; background: #e8f0ec; }
+      .readouts { display: flex; gap: 8px 22px; flex-wrap: wrap; margin-top: 18px; font-size: 12px; color: var(--muted); }
+      .readouts strong { color: var(--ink); font-weight: 500; }
+      .hint { margin-top: 17px; padding-left: 12px; border-left: 3px solid #bdcbbd; font-size: 14px; min-height: 45px; }
+      .quick-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+      .action { font-size: 13px; }
+      .comparison-controls { display: flex; align-items: center; gap: 15px; flex-wrap: wrap; margin-bottom: 22px; }
+      .comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+      .comparison h3 { font-size: 16px; margin-bottom: 9px; }
+      .small-stage { height: 182px; align-items: center; }
+      .small-stage .tile { width: 60px; height: 60px; }
+      .grid-stage { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-items: start; }
+      .grid-regions { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); pointer-events: none; z-index: 0; }
+      .grid-region { background: #eef3ed; border-right: 1px dashed #9eadab; position: relative; }
+      .grid-region:nth-child(2) { background: #faf0e3; }
+      .grid-region:last-child { border-right: 0; }
+      .grid-region span { position: absolute; bottom: 8px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--muted); }
+      .comparison-position { font-size: 13px; margin-top: 11px; color: var(--muted); }
+      .comparison-position strong { color: var(--ink); font-weight: 500; }
+      .self-result { margin-top: 22px; font-size: 14px; }
+      .span-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+      .span-controls label { font-size: 13px; }
+      .span-controls select { display: block; margin-top: 7px; }
+      .comment-parent { height: 190px; align-items: flex-end; }
+      .comment-content {
+        flex: 0 0 auto;
+        width: 100%;
+        padding: 8px;
+        border: 2px solid #a36b84;
+        background: #f7e7ee;
+        color: #75475d;
+        white-space: nowrap;
+        font-size: 16px;
+      }
+      .span-key { display: flex; gap: 20px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 12px; }
+      .span-key span { display: inline-flex; align-items: center; gap: 7px; }
+      .span-box-swatch { border: 2px solid #a36b84; background: #f7e7ee; }
+      footer { margin-top: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted); }
+      footer a { color: inherit; }
+      @media (max-width: 900px) {
+        .axis-layout { grid-template-columns: 1fr; gap: 24px; }
+        .controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+        .controls .checkbox { align-self: end; padding-bottom: 9px; }
+      }
+      @media (max-width: 620px) {
+        main { padding: 24px 16px; }
+        .panel { padding: 17px; }
+        .tag { display: none; }
+        .tabs { gap: 3px; margin-top: 21px; }
+        .tab { padding: 9px 10px; font-size: 13px; }
+        .comparison { grid-template-columns: 1fr; }
+        .span-controls { grid-template-columns: 1fr; gap: 12px; }
+        .stage { height: 314px; }
+        .small-stage { height: 164px; }
+        .comment-parent { height: 170px; }
+      }
+      @media (max-width: 420px) {
+        :root { --tile-size: 60px; }
+        main { padding: 20px 12px; }
+        .panel { padding: 14px; }
+        .controls { grid-template-columns: 1fr; gap: 17px; }
+        .panel-heading { margin-bottom: 17px; }
+        .tile-letter { font-size: 21px; }
+        .tile-position { font-size: 9px; }
+        .small-stage .tile { width: 54px; height: 54px; }
+        .comment-content { font-size: 14px; }
+        .legend { margin-left: 0; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">FLEX ALIGNMENT / 可操作演示</p>
+        <h1>两个方向，两种空间分配。</h1>
+        <p class="subtitle">切换属性，看盒子怎么移动。虚线和斜线标出它们能使用的空间。</p>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="选择演示">
+        <button class="tab" id="tab-axes" role="tab" type="button" aria-selected="true" aria-controls="panel-axes">① 主轴与交叉轴</button>
+        <button class="tab" id="tab-self" role="tab" type="button" aria-selected="false" aria-controls="panel-self" tabindex="-1">② Flex 与 Grid</button>
+        <button class="tab" id="tab-span" role="tab" type="button" aria-selected="false" aria-controls="panel-span" tabindex="-1">③ 你的 span</button>
+      </div>
+
+      <section class="panel" id="panel-axes" role="tabpanel" aria-labelledby="tab-axes">
+        <div class="panel-heading">
+          <div>
+            <h2>先移动 B，再移动整组。</h2>
+            <p class="secondary">三个盒子的尺寸固定。没有伸缩、外边距或 gap。</p>
+          </div>
+          <span class="tag">真实 CSS 布局</span>
+        </div>
+        <div class="axis-layout">
+          <div class="controls">
+            <div>
+              <span class="control-label">主轴方向 <code>flex-direction</code></span>
+              <div class="segmented" aria-label="主轴方向">
+                <button type="button" data-direction="row" aria-pressed="true">row →</button>
+                <button type="button" data-direction="column" aria-pressed="false">column ↓</button>
+              </div>
+            </div>
+            <div>
+              <label class="control-label" for="main-justify">整组的主轴对齐 <code>justify-content</code></label>
+              <select id="main-justify">
+                <option value="flex-start">flex-start · 余量放在后面</option>
+                <option value="center">center · 余量放在两端</option>
+                <option value="flex-end">flex-end · 余量放在前面</option>
+                <option value="space-between">space-between · 余量放在项之间</option>
+                <option value="space-around">space-around · 每项两侧分余量</option>
+                <option value="space-evenly">space-evenly · 所有空隙等宽</option>
+              </select>
+            </div>
+            <div>
+              <span class="control-label">每项的交叉轴对齐 <code>align-self</code></span>
+              <div class="self-controls">
+                <div class="self-row"><label class="letter-a" for="align-a">A</label><select id="align-a" data-item="a"><option value="flex-start">flex-start · 起点</option><option value="center">center · 居中</option><option value="flex-end">flex-end · 终点</option></select></div>
+                <div class="self-row"><label class="letter-b" for="align-b">B</label><select id="align-b" data-item="b"><option value="flex-start">flex-start · 起点</option><option value="center" selected>center · 居中</option><option value="flex-end">flex-end · 终点</option></select></div>
+                <div class="self-row"><label class="letter-c" for="align-c">C</label><select id="align-c" data-item="c"><option value="flex-start">flex-start · 起点</option><option value="center">center · 居中</option><option value="flex-end" selected>flex-end · 终点</option></select></div>
+              </div>
+            </div>
+            <label class="checkbox"><input id="show-ranges" type="checkbox" checked />显示空间范围</label>
+          </div>
+          <div class="visual">
+            <div class="canvas-wrap">
+              <div id="horizontal-axis" class="axis-horizontal main-axis" aria-hidden="true"><span>主轴 · 水平</span></div>
+              <div id="vertical-axis" class="axis-vertical cross-axis" aria-hidden="true"><span>交叉轴 · 竖直</span></div>
+              <div class="stage" id="main-stage" role="img" aria-label="Flex 项目和可用空间">
+                <div class="range-layer" id="range-layer" aria-hidden="true">
+                  <div class="range-band range-a"></div><div class="range-band range-b"></div><div class="range-band range-c"></div>
+                  <div class="free-gap"><span></span></div><div class="free-gap"><span></span></div><div class="free-gap"><span></span></div><div class="free-gap"><span></span></div>
+                </div>
+                <div class="tile tile-a" id="main-a"><span class="tile-letter">A</span><span class="tile-position number"></span></div>
+                <div class="tile tile-b" id="main-b"><span class="tile-letter">B</span><span class="tile-position number"></span></div>
+                <div class="tile tile-c" id="main-c"><span class="tile-letter">C</span><span class="tile-position number"></span></div>
+              </div>
+            </div>
+            <div class="legend"><span><i class="swatch swatch-free" aria-hidden="true"></i>斜线：整行共享的主轴余量</span><span><i class="swatch swatch-range" aria-hidden="true"></i>虚线：每项的交叉轴活动范围</span></div>
+            <div class="readouts" id="main-readouts"></div>
+            <p class="hint" id="main-hint" aria-live="polite">A、B、C 可以分别靠上、居中、靠下，它们的横向排列仍然相同。</p>
+            <div class="quick-actions">
+              <button class="action" id="move-b" type="button">只移动 B · 交叉轴</button>
+              <button class="action" id="move-group" type="button">移动整组 · 主轴</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" id="panel-self" role="tabpanel" aria-labelledby="tab-self" hidden>
+        <div class="panel-heading">
+          <div><h2>给 B 同样的 justify-self。</h2><p class="secondary">两边都设置这个属性。Grid 给 B 一个独立区域；Flex 按一行项目排列。</p></div>
+          <span class="tag">只改变 B</span>
+        </div>
+        <div class="comparison-controls">
+          <span class="control-label" style="margin: 0">B 的 <code>justify-self</code></span>
+          <div class="segmented" aria-label="B 的 justify-self">
+            <button type="button" data-justify-self="start" aria-pressed="false">start</button>
+            <button type="button" data-justify-self="center" aria-pressed="true">center</button>
+            <button type="button" data-justify-self="end" aria-pressed="false">end</button>
+          </div>
+        </div>
+        <div class="comparison">
+          <div>
+            <h3>Flex <span class="secondary">· justify-self 被忽略</span></h3>
+            <div class="stage small-stage" id="self-flex-stage" role="img" aria-label="Flex 中 B 的 justify-self 不改变位置">
+              <div class="tile tile-a"><span class="tile-letter">A</span></div><div class="tile tile-b" id="self-flex-b"><span class="tile-letter">B</span></div><div class="tile tile-c"><span class="tile-letter">C</span></div>
+            </div>
+            <p class="comparison-position" id="flex-self-position"></p>
+          </div>
+          <div>
+            <h3>Grid <span class="secondary">· B 在第 2 格内对齐</span></h3>
+            <div class="stage small-stage grid-stage" id="self-grid-stage" role="img" aria-label="Grid 中 B 在第 2 个网格区域内对齐">
+              <div class="grid-regions" aria-hidden="true"><div class="grid-region"><span>第 1 格</span></div><div class="grid-region"><span>第 2 格</span></div><div class="grid-region"><span>第 3 格</span></div></div>
+              <div class="tile tile-a"><span class="tile-letter">A</span></div><div class="tile tile-b" id="self-grid-b"><span class="tile-letter">B</span></div><div class="tile tile-c"><span class="tile-letter">C</span></div>
+            </div>
+            <p class="comparison-position" id="grid-self-position"></p>
+          </div>
+        </div>
+        <p class="hint" id="self-hint" aria-live="polite"></p>
+      </section>
+
+      <section class="panel" id="panel-span" role="tabpanel" aria-labelledby="tab-span" hidden>
+        <div class="panel-heading">
+          <div><h2>回到你的 span：盒子和里面的文字。</h2><p class="secondary">外层始终是横向 Flex。span 始终作为外层的 Flex 项靠底。</p></div>
+          <span class="tag">去掉 absolute 的版本</span>
+        </div>
+        <div class="span-controls">
+          <label for="span-width">span 的宽度<select id="span-width"><option value="full">100% · 铺满外层</option><option value="auto">auto · 按内容宽度</option></select></label>
+          <label for="span-layout">span 的内部布局<select id="span-layout"><option value="flow">普通文字排版</option><option value="flex">Flex · 文字成为匿名 Flex 项</option></select></label>
+          <label for="span-property">在 span 上设为 center<select id="span-property"><option value="justify-content">justify-content</option><option value="justify-self">justify-self</option><option value="justify-items">justify-items</option><option value="text-align">text-align</option></select></label>
+        </div>
+        <div class="stage comment-parent" id="comment-parent" role="img" aria-label="Flex 父容器内靠底的 span 与文字">
+          <span class="comment-content" id="comment-demo">Photo by Mr. I.</span>
+        </div>
+        <div class="span-key"><span><i class="swatch span-box-swatch" aria-hidden="true"></i>粉色边框：span 的盒子</span><span>灰色边框：外层 Flex 容器</span></div>
+        <div class="readouts" id="span-readouts"></div>
+        <p class="hint" id="span-hint" aria-live="polite"></p>
+        <div class="quick-actions">
+          <button class="action" type="button" data-span-preset="original">复现你的截图</button>
+          <button class="action" type="button" data-span-preset="text">用文本对齐居中</button>
+          <button class="action" type="button" data-span-preset="flex">把 span 内部改成 Flex</button>
+        </div>
+      </section>
+
+      <footer><span>全部由浏览器实际排版；标注读取盒子的真实位置。无需联网。</span><a href="https://www.w3.org/TR/css-flexbox-1/#align-items-property" target="_blank" rel="noopener noreferrer">规范：align-self 相对所在 Flex 行对齐 ↗</a></footer>
+    </main>
+    <script>
+      (() => {
+        const $ = (selector) => document.querySelector(selector);
+        const $$ = (selector) => Array.from(document.querySelectorAll(selector));
+        const state = { direction: "row", justify: "flex-start", self: { a: "flex-start", b: "center", c: "flex-end" }, justifySelf: "center", showRanges: true };
+        const mainStage = $("#main-stage");
+        const mainTiles = [$("#main-a"), $("#main-b"), $("#main-c")];
+        const bands = $$(".range-band");
+        const gaps = $$(".free-gap");
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        const letters = ["a", "b", "c"];
+
+        function move(elements, change, render) {
+          const before = elements.map((element) => element.getBoundingClientRect());
+          elements.forEach((element) => element.getAnimations().forEach((animation) => animation.cancel()));
+          change();
+          render();
+          if (reducedMotion.matches) return;
+          elements.forEach((element, index) => {
+            const after = element.getBoundingClientRect();
+            const x = before[index].left - after.left;
+            const y = before[index].top - after.top;
+            if (Math.abs(x) + Math.abs(y) > .5) {
+              element.animate([{ transform: `translate(${x}px, ${y}px)` }, { transform: "translate(0, 0)" }], { duration: 420, easing: "cubic-bezier(.2,.7,.2,1)" });
+            }
+          });
+        }
+
+        function box(element) {
+          return { x: element.offsetLeft, y: element.offsetTop, width: element.offsetWidth, height: element.offsetHeight };
+        }
+
+        function paintMain() {
+          if ($("#panel-axes").hidden) return;
+          const horizontal = state.direction === "row";
+          const width = mainStage.clientWidth;
+          const height = mainStage.clientHeight;
+          const positions = mainTiles.map(box);
+          const mainSize = horizontal ? width : height;
+          const crossSize = horizontal ? height : width;
+          const used = positions.reduce((sum, item) => sum + (horizontal ? item.width : item.height), 0);
+          const free = Math.max(0, mainSize - used);
+
+          positions.forEach((item, index) => {
+            const band = bands[index];
+            band.style.left = `${horizontal ? item.x : 0}px`;
+            band.style.top = `${horizontal ? 0 : item.y}px`;
+            band.style.width = `${horizontal ? item.width : width}px`;
+            band.style.height = `${horizontal ? height : item.height}px`;
+            mainTiles[index].querySelector(".tile-position").textContent = `x ${item.x} · y ${item.y}`;
+          });
+
+          let cursor = 0;
+          const gapSizes = [];
+          for (let index = 0; index <= positions.length; index++) {
+            const next = index < positions.length ? (horizontal ? positions[index].x : positions[index].y) : mainSize;
+            const size = Math.max(0, next - cursor);
+            gapSizes.push(size);
+            const gap = gaps[index];
+            gap.style.left = `${horizontal ? cursor : 0}px`;
+            gap.style.top = `${horizontal ? 0 : cursor}px`;
+            gap.style.width = `${horizontal ? size : width}px`;
+            gap.style.height = `${horizontal ? height : size}px`;
+            gap.hidden = size < 1;
+            gap.querySelector("span").textContent = size >= 44 ? `${size} px` : "";
+            if (index < positions.length) cursor = next + (horizontal ? positions[index].width : positions[index].height);
+          }
+
+          const hAxis = $("#horizontal-axis");
+          const vAxis = $("#vertical-axis");
+          hAxis.className = `axis-horizontal ${horizontal ? "main-axis" : "cross-axis"}`;
+          vAxis.className = `axis-vertical ${horizontal ? "cross-axis" : "main-axis"}`;
+          hAxis.querySelector("span").textContent = horizontal ? "主轴 · 水平" : "交叉轴 · 水平";
+          vAxis.querySelector("span").textContent = horizontal ? "交叉轴 · 竖直" : "主轴 · 竖直";
+          $("#range-layer").hidden = !state.showRanges;
+          $("#main-readouts").innerHTML = `<span>主轴：<strong class="number">${mainSize} − ${used} = ${free} px</strong> 共享余量</span><span>每项交叉轴：<strong class="number">${crossSize} − ${horizontal ? positions[1].height : positions[1].width} = ${crossSize - (horizontal ? positions[1].height : positions[1].width)} px</strong> 活动余量</span>`;
+          mainStage.setAttribute("aria-label", `${state.direction} 方向的单行 Flex；justify-content 为 ${state.justify}；主轴剩余 ${free} 像素。A、B、C 的 align-self 分别为 ${letters.map((letter) => state.self[letter]).join("、")}。`);
+          return { horizontal, positions, free, gapSizes };
+        }
+
+        function applyMain() {
+          mainStage.style.flexDirection = state.direction;
+          mainStage.style.justifyContent = state.justify;
+          mainStage.style.alignItems = "flex-start";
+          mainTiles.forEach((tile, index) => { tile.style.alignSelf = state.self[letters[index]]; });
+          $("#main-justify").value = state.justify;
+          letters.forEach((letter) => { $(`#align-${letter}`).value = state.self[letter]; });
+          $$("[data-direction]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.direction === state.direction)));
+        }
+
+        function updateMain(change, kind, letter = "b") {
+          const before = mainTiles.map(box);
+          move(mainTiles, () => { change(); applyMain(); }, paintMain);
+          const after = mainTiles.map(box);
+          const horizontal = state.direction === "row";
+          if (kind === "cross") {
+            const index = letters.indexOf(letter);
+            const axis = horizontal ? "y" : "x";
+            const fixedAxis = horizontal ? "x" : "y";
+            $("#main-hint").textContent = `${letter.toUpperCase()} 沿交叉轴移动：${axis} 从 ${before[index][axis]} 到 ${after[index][axis]}。三个项目的主轴坐标 ${fixedAxis} 都保持不变。`;
+          } else if (kind === "main") {
+            $("#main-hint").textContent = `justify-content 现在为 ${state.justify}。斜线余量重新分配到整组前后或项目之间；每项的交叉轴对齐保持不变。`;
+          } else {
+            $("#main-hint").textContent = horizontal ? "主轴变为水平：左右分配整行余量，上下可以分别对齐各项。" : "主轴变为竖直：上下分配整行余量，左右可以分别对齐各项。空间范围也跟着旋转。";
+          }
+        }
+
+        $$("[data-direction]").forEach((button) => button.addEventListener("click", () => updateMain(() => { state.direction = button.dataset.direction; }, "direction")));
+        $("#main-justify").addEventListener("change", (event) => updateMain(() => { state.justify = event.target.value; }, "main"));
+        $$("[data-item]").forEach((select) => select.addEventListener("change", () => updateMain(() => { state.self[select.dataset.item] = select.value; }, "cross", select.dataset.item)));
+        $("#move-b").addEventListener("click", () => updateMain(() => { const values = ["flex-start", "center", "flex-end"]; state.self.b = values[(values.indexOf(state.self.b) + 1) % values.length]; }, "cross"));
+        $("#move-group").addEventListener("click", () => updateMain(() => { const values = ["flex-start", "center", "flex-end"]; state.justify = values[(values.indexOf(state.justify) + 1) % values.length]; }, "main"));
+        $("#show-ranges").addEventListener("change", (event) => { state.showRanges = event.target.checked; paintMain(); });
+
+        const flexB = $("#self-flex-b");
+        const gridB = $("#self-grid-b");
+        function paintSelf() {
+          if ($("#panel-self").hidden) return;
+          $("#flex-self-position").innerHTML = `B 距容器左边：<strong class="number">${flexB.offsetLeft} px</strong>`;
+          const gridAreaWidth = $("#self-grid-stage").clientWidth / 3;
+          const areaOffset = Math.round(gridB.offsetLeft - gridAreaWidth);
+          $("#grid-self-position").innerHTML = `B 距第 2 格左边：<strong class="number">${areaOffset} px</strong>`;
+          $("#self-hint").textContent = `两边的 B 都设置了 justify-self: ${state.justifySelf}。Flex 的 B 仍跟在 A 后面；Grid 的 B 在第 2 格的 ${state.justifySelf === "start" ? "起点" : state.justifySelf === "center" ? "中间" : "终点"}。A、C 都不移动。`;
+        }
+        function applySelf() {
+          flexB.style.justifySelf = state.justifySelf;
+          gridB.style.justifySelf = state.justifySelf;
+          $$("[data-justify-self]").forEach((button) => button.setAttribute("aria-pressed", String(button.dataset.justifySelf === state.justifySelf)));
+        }
+        $$("[data-justify-self]").forEach((button) => button.addEventListener("click", () => move([flexB, gridB], () => { state.justifySelf = button.dataset.justifySelf; applySelf(); }, paintSelf)));
+
+        const comment = $("#comment-demo");
+        function paintSpan() {
+          if ($("#panel-span").hidden) return;
+          const wide = $("#span-width").value === "full";
+          const flex = $("#span-layout").value === "flex";
+          const property = $("#span-property").value;
+          comment.style.width = wide ? "100%" : "auto";
+          comment.style.display = flex ? "flex" : "block";
+          comment.style.justifyContent = "normal";
+          comment.style.justifyItems = "normal";
+          comment.style.justifySelf = "auto";
+          comment.style.textAlign = "start";
+          comment.style.setProperty(property, "center");
+
+          const range = document.createRange();
+          range.selectNodeContents(comment);
+          const textRect = range.getBoundingClientRect();
+          const parent = $("#comment-parent");
+          const origin = parent.getBoundingClientRect().left + parent.clientLeft;
+          $("#span-readouts").innerHTML = `<span>span 宽：<strong class="number">${comment.offsetWidth} px</strong></span><span>span 距外层左边：<strong class="number">${comment.offsetLeft} px</strong></span><span>文字距外层左边：<strong class="number">${Math.round(textRect.left - origin)} px</strong></span>`;
+          let hint;
+          if (property === "justify-self") {
+            hint = "justify-self 管 span 在外层的位置。外层是 Flex，因此被忽略；把 span 的内部改成 Flex，也不改变它在外层的 Flex 项身份。";
+          } else if (property === "justify-items") {
+            hint = flex ? "span 内部是 Flex，而 Flex 忽略 justify-items。" : "span 内部是普通行内文字排版；justify-items 不负责这一行文字的对齐。";
+          } else if (property === "justify-content") {
+            hint = flex ? (wide ? "span 内部成为 Flex 容器，文字被包进匿名 Flex 项。justify-content 可以分配 span 内部余量，所以文字居中了。" : "文字是匿名 Flex 项，但 span 的宽度只包住内容，没有额外横向空间可分配，因此看不到居中移动。") : "span 内部仍是普通文字排版。justify-content 没有处理这行文字；外层是 Flex 不会让内部也自动变成 Flex。";
+          } else {
+            hint = flex ? "text-align 对齐文字所在行里的内容；这里匿名 Flex 项只包住文字，它不会因此移动到 span 的中间。" : (wide ? "text-align 对齐 span 内部的行内文字。span 铺满外层，因此文字可以在这份宽度里居中。" : "text-align 已经是 center，但 span 只包住文字；没有额外横向空间，所以文字位置几乎不变。");
+          }
+          $("#span-hint").textContent = hint;
+        }
+        ["#span-width", "#span-layout", "#span-property"].forEach((selector) => $(selector).addEventListener("change", paintSpan));
+        $$("[data-span-preset]").forEach((button) => button.addEventListener("click", () => {
+          $("#span-width").value = "full";
+          $("#span-layout").value = button.dataset.spanPreset === "flex" ? "flex" : "flow";
+          $("#span-property").value = button.dataset.spanPreset === "text" ? "text-align" : "justify-content";
+          paintSpan();
+        }));
+
+        const tabs = $$("[role='tab']");
+        function selectTab(tab) {
+          tabs.forEach((item) => {
+            const selected = item === tab;
+            item.setAttribute("aria-selected", String(selected));
+            item.tabIndex = selected ? 0 : -1;
+            document.getElementById(item.getAttribute("aria-controls")).hidden = !selected;
+          });
+          mainTiles.concat([flexB, gridB]).forEach((element) => element.getAnimations().forEach((animation) => animation.cancel()));
+          paintMain(); paintSelf(); paintSpan();
+        }
+        tabs.forEach((tab, index) => {
+          tab.addEventListener("click", () => selectTab(tab));
+          tab.addEventListener("keydown", (event) => {
+            let next;
+            if (event.key === "ArrowRight") next = (index + 1) % tabs.length;
+            else if (event.key === "ArrowLeft") next = (index + tabs.length - 1) % tabs.length;
+            else if (event.key === "Home") next = 0;
+            else if (event.key === "End") next = tabs.length - 1;
+            else return;
+            event.preventDefault(); selectTab(tabs[next]); tabs[next].focus();
+          });
+        });
+
+        applyMain(); applySelf(); paintMain();
+        const resizeObserver = new ResizeObserver(() => { paintMain(); paintSelf(); paintSpan(); });
+        [mainStage, $("#self-flex-stage"), $("#self-grid-stage"), $("#comment-parent")].forEach((element) => resizeObserver.observe(element));
+      })();
+    </script>
+  </body>
+</html>
